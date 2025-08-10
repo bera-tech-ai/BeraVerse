@@ -1,117 +1,69 @@
-const API_BASE = "https://apis.davidcyriltech.my.id/youtube";
-
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
-    const videoGrid = document.getElementById('video-grid');
+    const searchBtn = document.getElementById('search-btn');
+    const videoFeed = document.getElementById('video-feed');
     
-    // Load default content
-    fetchVideos('music');
+    // Load trending videos on page load
+    fetchVideos('trending');
     
     // Search functionality
-    searchButton.addEventListener('click', () => {
+    searchBtn.addEventListener('click', () => {
         const query = searchInput.value.trim();
-        if (query) fetchVideos(query);
+        if (query) {
+            fetchVideos(query);
+        }
     });
     
     searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') searchButton.click();
+        if (e.key === 'Enter') {
+            const query = searchInput.value.trim();
+            if (query) {
+                fetchVideos(query);
+            }
+        }
     });
     
+    // Function to fetch videos from API
     async function fetchVideos(query) {
         try {
-            showLoading();
-            const response = await fetch(`${API_BASE}/search?query=${encodeURIComponent(query)}`);
+            videoFeed.innerHTML = '<div class="loading">Loading videos...</div>';
             
-            if (!response.ok) throw new Error('API request failed');
-            
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
             const data = await response.json();
             
-            // Handle different response formats
-            const videos = Array.isArray(data) ? data : 
-                         data.items ? data.items : 
-                         data.videos ? data.videos : [];
-            
-            if (videos.length === 0) throw new Error('No videos found');
-            
-            displayVideos(videos);
-        } catch (error) {
-            console.error('Error:', error);
-            videoGrid.innerHTML = `<p class="error">${error.message}</p>`;
-        } finally {
-            hideLoading();
-        }
-    }
-    
-    function displayVideos(videos) {
-        if (!Array.isArray(videos)) {
-            videoGrid.innerHTML = '<p class="error">Invalid video data format</p>';
-            return;
-        }
-        
-        videoGrid.innerHTML = videos.map(video => {
-            // Ensure video has required properties
-            const videoId = video.id || video.videoId || '';
-            const title = video.title || 'Untitled';
-            const thumbnail = video.thumbnail || 'https://via.placeholder.com/300x200';
-            const channel = video.channel || video.channelTitle || 'Unknown channel';
-            const url = video.url || `https://www.youtube.com/watch?v=${videoId}`;
-            
-            return `
-                <div class="video-card">
-                    <img class="video-thumbnail" src="${thumbnail}" alt="${title}">
-                    <div class="video-info">
-                        <h3 class="video-title">${title}</h3>
-                        <p class="video-channel">${channel}</p>
-                        <div class="video-actions">
-                            <button class="watch-btn" onclick="window.location='watch.html?id=${videoId}&title=${encodeURIComponent(title)}'">
-                                Watch
-                            </button>
-                            <button class="download-btn" onclick="downloadVideo('${url}', 'mp3')">
-                                MP3
-                            </button>
-                            <button class="download-btn" onclick="downloadVideo('${url}', 'mp4')">
-                                MP4
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    // Make downloadVideo available globally
-    window.downloadVideo = async function(url, format) {
-        try {
-            showLoading();
-            const response = await fetch(`${API_BASE}/${format}?url=${encodeURIComponent(url)}`);
-            
-            if (!response.ok) throw new Error('Download failed');
-            
-            const data = await response.json();
-            const downloadUrl = data.url || data.link || data.downloadUrl;
-            
-            if (downloadUrl) {
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = `video.${format}`;
-                a.click();
+            if (data && data.videos && data.videos.length > 0) {
+                displayVideos(data.videos);
             } else {
-                throw new Error('No download link found');
+                videoFeed.innerHTML = '<div class="no-results">No videos found. Try a different search.</div>';
             }
         } catch (error) {
-            console.error('Download error:', error);
-            alert(`Download failed: ${error.message}`);
-        } finally {
-            hideLoading();
+            console.error('Error fetching videos:', error);
+            videoFeed.innerHTML = '<div class="error">Failed to load videos. Please try again later.</div>';
         }
     }
     
-    function showLoading() {
-        document.getElementById('loading').classList.remove('hidden');
-    }
-    
-    function hideLoading() {
-        document.getElementById('loading').classList.add('hidden');
+    // Function to display videos in the feed
+    function displayVideos(videos) {
+        videoFeed.innerHTML = '';
+        
+        videos.forEach(video => {
+            const videoCard = document.createElement('div');
+            videoCard.className = 'video-card';
+            videoCard.innerHTML = `
+                <div class="video-thumbnail">
+                    <img src="${video.thumbnail}" alt="${video.title}">
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">${video.title}</h3>
+                    <p class="video-channel">${video.channel}</p>
+                </div>
+            `;
+            
+            videoCard.addEventListener('click', () => {
+                window.location.href = `watch.html?videoId=${video.id}&title=${encodeURIComponent(video.title)}&channel=${encodeURIComponent(video.channel)}`;
+            });
+            
+            videoFeed.appendChild(videoCard);
+        });
     }
 });
