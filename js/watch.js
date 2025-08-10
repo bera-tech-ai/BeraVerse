@@ -1,93 +1,85 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get('id');
-    const videoTitle = decodeURIComponent(urlParams.get('title') || 'Video');
-    const videoChannel = decodeURIComponent(urlParams.get('channel') || 'Unknown channel');
+    const videoId = urlParams.get('videoId');
+    const videoTitle = urlParams.get('title');
+    const videoChannel = urlParams.get('channel');
     
     const videoPlayer = document.getElementById('video-player');
     const titleElement = document.getElementById('video-title');
-    const channelElement = document.getElementById('video-channel');
-    const mp3Button = document.getElementById('download-mp3');
-    const mp4Button = document.getElementById('download-mp4');
-    const saveButton = document.getElementById('save-offline');
+    const descriptionElement = document.getElementById('video-description');
+    const downloadMp3Btn = document.getElementById('download-mp3');
+    const downloadMp4Btn = document.getElementById('download-mp4');
     
-    if (!videoId) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    // Set video info
-    titleElement.textContent = videoTitle;
-    channelElement.textContent = videoChannel;
-    
-    // Embed YouTube player
-    videoPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    
-    // Set up download buttons
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    mp3Button.addEventListener('click', () => downloadVideo(videoUrl, 'mp3'));
-    mp4Button.addEventListener('click', () => downloadVideo(videoUrl, 'mp4'));
-    
-    // Set up offline save
-    saveButton.addEventListener('click', () => saveVideoForOffline({
-        id: videoId,
-        title: videoTitle,
-        channel: videoChannel,
-        url: videoUrl
-    }));
-    
-    async function downloadVideo(videoUrl, format) {
-        try {
-            showLoading();
-            const apiUrl = `https://apis.davidcyriltech.my.id/youtube/${format}?url=${encodeURIComponent(videoUrl)}`;
-            const response = await fetch(apiUrl);
-            const data = await response.json();
-            
-            if (data.url) {
-                // Create a temporary anchor element to trigger download
-                const a = document.createElement('a');
-                a.href = data.url;
-                a.download = `beraverse-${videoTitle.substring(0, 20)}-${Date.now()}.${format}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } else {
-                alert('Failed to get download link. Please try again.');
+    // Set up the video player and info
+    if (videoId) {
+        videoPlayer.src = `https://www.youtube.com/embed/${videoId}`;
+        titleElement.textContent = decodeURIComponent(videoTitle);
+        descriptionElement.textContent = `By ${decodeURIComponent(videoChannel)}`;
+        
+        // Set up download buttons
+        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+        
+        downloadMp3Btn.addEventListener('click', async () => {
+            try {
+                downloadMp3Btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing download...';
+                
+                const response = await fetch(`/api/mp3?url=${encodeURIComponent(videoUrl)}`);
+                const data = await response.json();
+                
+                if (data && data.url) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Failed to get MP3 download link');
+                }
+            } catch (error) {
+                console.error('MP3 download error:', error);
+                alert('Failed to prepare MP3 download');
+            } finally {
+                downloadMp3Btn.innerHTML = '<i class="fas fa-music"></i> Download MP3';
             }
-        } catch (error) {
-            console.error('Download error:', error);
-            alert('Download failed. Please try again.');
-        } finally {
-            hideLoading();
-        }
+        });
+        
+        downloadMp4Btn.addEventListener('click', async () => {
+            try {
+                downloadMp4Btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing download...';
+                
+                const response = await fetch(`/api/mp4?url=${encodeURIComponent(videoUrl)}`);
+                const data = await response.json();
+                
+                if (data && data.url) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Failed to get MP4 download link');
+                }
+            } catch (error) {
+                console.error('MP4 download error:', error);
+                alert('Failed to prepare MP4 download');
+            } finally {
+                downloadMp4Btn.innerHTML = '<i class="fas fa-video"></i> Download MP4';
+            }
+        });
+    } else {
+        // No video ID provided, redirect to home
+        window.location.href = '/';
     }
     
-    function showLoading() {
-        // Implement loading indicator for watch page
-        const loading = document.createElement('div');
-        loading.id = 'watch-loading';
-        loading.textContent = 'Loading...';
-        document.body.appendChild(loading);
-    }
+    // Search functionality (same as in main.js)
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
     
-    function hideLoading() {
-        const loading = document.getElementById('watch-loading');
-        if (loading) {
-            loading.remove();
+    searchBtn.addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `/?q=${encodeURIComponent(query)}`;
         }
-    }
+    });
     
-    async function saveVideoForOffline(video) {
-        try {
-            showLoading();
-            await saveVideoToDB(video);
-            alert('Video saved for offline viewing!');
-        } catch (error) {
-            console.error('Error saving video:', error);
-            alert('Failed to save video for offline viewing.');
-        } finally {
-            hideLoading();
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.href = `/?q=${encodeURIComponent(query)}`;
+            }
         }
-    }
+    });
 });
