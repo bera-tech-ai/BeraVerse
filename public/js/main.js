@@ -25,53 +25,79 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (!response.ok) throw new Error('API request failed');
             
-            const videos = await response.json();
+            const data = await response.json();
+            
+            // Handle different response formats
+            const videos = Array.isArray(data) ? data : 
+                         data.items ? data.items : 
+                         data.videos ? data.videos : [];
+            
+            if (videos.length === 0) throw new Error('No videos found');
+            
             displayVideos(videos);
         } catch (error) {
             console.error('Error:', error);
-            videoGrid.innerHTML = `<p class="error">Error loading videos: ${error.message}</p>`;
+            videoGrid.innerHTML = `<p class="error">${error.message}</p>`;
         } finally {
             hideLoading();
         }
     }
     
     function displayVideos(videos) {
-        videoGrid.innerHTML = videos.map(video => `
-            <div class="video-card">
-                <img class="video-thumbnail" src="${video.thumbnail}" alt="${video.title}">
-                <div class="video-info">
-                    <h3 class="video-title">${video.title}</h3>
-                    <p class="video-channel">${video.channel || 'Unknown channel'}</p>
-                    <div class="video-actions">
-                        <button class="watch-btn" onclick="window.location='watch.html?id=${video.id}&title=${encodeURIComponent(video.title)}'">
-                            Watch
-                        </button>
-                        <button class="download-btn" onclick="downloadVideo('${video.url}', 'mp3')">
-                            MP3
-                        </button>
-                        <button class="download-btn" onclick="downloadVideo('${video.url}', 'mp4')">
-                            MP4
-                        </button>
+        if (!Array.isArray(videos)) {
+            videoGrid.innerHTML = '<p class="error">Invalid video data format</p>';
+            return;
+        }
+        
+        videoGrid.innerHTML = videos.map(video => {
+            // Ensure video has required properties
+            const videoId = video.id || video.videoId || '';
+            const title = video.title || 'Untitled';
+            const thumbnail = video.thumbnail || 'https://via.placeholder.com/300x200';
+            const channel = video.channel || video.channelTitle || 'Unknown channel';
+            const url = video.url || `https://www.youtube.com/watch?v=${videoId}`;
+            
+            return `
+                <div class="video-card">
+                    <img class="video-thumbnail" src="${thumbnail}" alt="${title}">
+                    <div class="video-info">
+                        <h3 class="video-title">${title}</h3>
+                        <p class="video-channel">${channel}</p>
+                        <div class="video-actions">
+                            <button class="watch-btn" onclick="window.location='watch.html?id=${videoId}&title=${encodeURIComponent(title)}'">
+                                Watch
+                            </button>
+                            <button class="download-btn" onclick="downloadVideo('${url}', 'mp3')">
+                                MP3
+                            </button>
+                            <button class="download-btn" onclick="downloadVideo('${url}', 'mp4')">
+                                MP4
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
     
-    async function downloadVideo(url, format) {
+    // Make downloadVideo available globally
+    window.downloadVideo = async function(url, format) {
         try {
             showLoading();
             const response = await fetch(`${API_BASE}/${format}?url=${encodeURIComponent(url)}`);
             
             if (!response.ok) throw new Error('Download failed');
             
-            const { url: downloadUrl } = await response.json();
+            const data = await response.json();
+            const downloadUrl = data.url || data.link || data.downloadUrl;
             
             if (downloadUrl) {
                 const a = document.createElement('a');
                 a.href = downloadUrl;
                 a.download = `video.${format}`;
                 a.click();
+            } else {
+                throw new Error('No download link found');
             }
         } catch (error) {
             console.error('Download error:', error);
