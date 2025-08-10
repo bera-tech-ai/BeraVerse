@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Video - BeraVerse</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile.css" media="(max-width: 768px)">
+</head>
+<body>
+    <header>
+        <div class="logo">BeraVerse</div>
+        <a href="index.html" class="back-button">← Back</a>
+    </header>
+
+    <main id="watch-container">
+        <div id="video-player-container">
+            <iframe id="video-player" frameborder="0" allowfullscreen></iframe>
+        </div>
+        
+        <div id="video-info">
+            <h1 id="video-title"></h1>
+            <p id="video-channel"></p>
+            <p id="video-views"></p>
+            
+            <div class="action-buttons">
+                <button id="download-mp3">Download MP3</button>
+                <button id="download-mp4">Download MP4</button>
+                <button id="save-offline">Save for Offline</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/db.js"></script>
+    <script src="js/watch.js"></script>
+</body>
+</html>
