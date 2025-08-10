@@ -1,0 +1,39 @@
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        padding: 0.5rem;
+    }
+    
+    .logo {
+        margin-bottom: 0.5rem;
+    }
+    
+    .search-container {
+        width: 100%;
+    }
+    
+    #video-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .video-thumbnail {
+        height: 200px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons button {
+        width: 100%;
+    }
+    
+    .video-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .video-actions button {
+        width: 100%;
+    }
+}
