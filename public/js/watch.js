@@ -1,93 +1,59 @@
+const API_BASE = "https://apis.davidcyriltech.my.id/youtube";
+
 document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoId = urlParams.get('id');
-    const videoTitle = decodeURIComponent(urlParams.get('title') || 'Video');
-    const videoChannel = decodeURIComponent(urlParams.get('channel') || 'Unknown channel');
+    const params = new URLSearchParams(window.location.search);
+    const videoId = params.get('id');
+    const videoTitle = params.get('title');
     
-    const videoPlayer = document.getElementById('video-player');
-    const titleElement = document.getElementById('video-title');
-    const channelElement = document.getElementById('video-channel');
-    const mp3Button = document.getElementById('download-mp3');
-    const mp4Button = document.getElementById('download-mp4');
-    const saveButton = document.getElementById('save-offline');
+    if (!videoId) return window.location.href = 'index.html';
     
-    if (!videoId) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    // Set video info
-    titleElement.textContent = videoTitle;
-    channelElement.textContent = videoChannel;
-    
-    // Embed YouTube player
-    videoPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    // Set up player
+    document.getElementById('video-player').src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+    document.getElementById('video-title').textContent = decodeURIComponent(videoTitle);
     
     // Set up download buttons
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
     
-    mp3Button.addEventListener('click', () => downloadVideo(videoUrl, 'mp3'));
-    mp4Button.addEventListener('click', () => downloadVideo(videoUrl, 'mp4'));
+    document.getElementById('download-mp3').addEventListener('click', () => {
+        downloadVideo(videoUrl, 'mp3');
+    });
     
-    // Set up offline save
-    saveButton.addEventListener('click', () => saveVideoForOffline({
-        id: videoId,
-        title: videoTitle,
-        channel: videoChannel,
-        url: videoUrl
-    }));
+    document.getElementById('download-mp4').addEventListener('click', () => {
+        downloadVideo(videoUrl, 'mp4');
+    });
     
-    async function downloadVideo(videoUrl, format) {
+    async function downloadVideo(url, format) {
         try {
             showLoading();
-            const apiUrl = `https://apis.davidcyriltech.my.id/youtube/${format}?url=${encodeURIComponent(videoUrl)}`;
-            const response = await fetch(apiUrl);
-            const data = await response.json();
+            const response = await fetch(`${API_BASE}/${format}?url=${encodeURIComponent(url)}`);
             
-            if (data.url) {
-                // Create a temporary anchor element to trigger download
+            if (!response.ok) throw new Error('Download failed');
+            
+            const { url: downloadUrl } = await response.json();
+            
+            if (downloadUrl) {
                 const a = document.createElement('a');
-                a.href = data.url;
-                a.download = `beraverse-${videoTitle.substring(0, 20)}-${Date.now()}.${format}`;
-                document.body.appendChild(a);
+                a.href = downloadUrl;
+                a.download = `${videoTitle || 'video'}.${format}`;
                 a.click();
-                document.body.removeChild(a);
-            } else {
-                alert('Failed to get download link. Please try again.');
             }
         } catch (error) {
             console.error('Download error:', error);
-            alert('Download failed. Please try again.');
+            alert(`Download failed: ${error.message}`);
         } finally {
             hideLoading();
         }
     }
     
     function showLoading() {
-        // Implement loading indicator for watch page
         const loading = document.createElement('div');
-        loading.id = 'watch-loading';
-        loading.textContent = 'Loading...';
+        loading.className = 'loading-overlay';
+        loading.innerHTML = '<div class="loading-spinner"></div><p>Loading...</p>';
         document.body.appendChild(loading);
     }
     
     function hideLoading() {
-        const loading = document.getElementById('watch-loading');
-        if (loading) {
-            loading.remove();
-        }
-    }
-    
-    async function saveVideoForOffline(video) {
-        try {
-            showLoading();
-            await saveVideoToDB(video);
-            alert('Video saved for offline viewing!');
-        } catch (error) {
-            console.error('Error saving video:', error);
-            alert('Failed to save video for offline viewing.');
-        } finally {
-            hideLoading();
-        }
+        const loading = document.querySelector('.loading-overlay');
+        if (loading) loading.remove();
     }
 });
